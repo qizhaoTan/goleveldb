@@ -179,18 +179,27 @@ const (
 )
 
 // DB is an in-memory key/value database.
+// 类似跳表
 type DB struct {
 	cmp comparer.BasicComparer
 	rnd *rand.Rand
 
 	mu     sync.RWMutex
 	kvData []byte
+
+	// 核心逻辑在Node Data里面
+	// 前4位是特殊位
+	// 5-16位对应跳表的1-12层的头节点
 	// Node data:
 	// [0]         : KV offset
 	// [1]         : Key length
 	// [2]         : Value length
 	// [3]         : Height
 	// [3..height] : Next nodes
+	// 例如 第2层的一个节点 abc xxx 其下一个第二层节点为 bcd 其下一个第一层节点为 abd
+	// [2608(对应kvData的偏移)、3、3、2、16(对应nodeData的偏移)、77(对应nodeData的偏移)]
+	// nodeData[16] 可以找到abd相关的node数据
+	// nodeData[77] 可以找到bcd相关的node数据
 	nodeData  []int
 	prevNode  [tMaxHeight]int
 	maxHeight int
