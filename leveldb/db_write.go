@@ -225,17 +225,21 @@ func (db *DB) writeLocked(batch, ourBatch *Batch, merge, sync bool) error {
 	}
 
 	// Seq number.
-	seq := db.seq + 1
+	seq := db.seq + 1 // 看起来seq就是一个唯一值，序列号，每次操作加1
 
 	// Write journal.
+	// 先写日志
 	if err := db.writeJournal(batches, seq, sync); err != nil {
 		db.unlockWrite(overflow, merged, err)
 		return err
 	}
 
 	// Put batches.
+	// 再写内存
 	for _, batch := range batches {
 		if err := batch.putMem(seq, mdb.DB); err != nil {
+			// 其实不可能返回err
+			// 如果走到这里需要释放锁才行
 			panic(err)
 		}
 		seq += uint64(batch.Len())
@@ -245,6 +249,7 @@ func (db *DB) writeLocked(batch, ourBatch *Batch, merge, sync bool) error {
 	db.addSeq(uint64(batchesLen(batches)))
 
 	// Rotate memdb if it's reach the threshold.
+	// FIXME 这里应该判断 全部batches的长度之和?
 	if batch.internalLen >= mdbFree {
 		if _, err := db.rotateMem(0, false); err != nil {
 			db.unlockWrite(overflow, merged, err)

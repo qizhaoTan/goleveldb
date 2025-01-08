@@ -72,6 +72,7 @@ func init() {
 
 type internalKey []byte
 
+// 传入dst避免重复分配内存
 func makeInternalKey(dst, ukey []byte, seq uint64, kt keyType) internalKey {
 	if seq > keyMaxSeq {
 		panic("leveldb: invalid sequence number")
@@ -79,8 +80,11 @@ func makeInternalKey(dst, ukey []byte, seq uint64, kt keyType) internalKey {
 		panic("leveldb: invalid type")
 	}
 
+	// 原有的key长度+8个字节(seq uint64 64位等于8个字节)
 	dst = ensureBuffer(dst, len(ukey)+8)
 	copy(dst, ukey)
+	// 后8个字节 前7个字节填充seq，最后一个字节填keyType
+	// seq的作用是，当ukey+kt一致时，seq最大的为最新数据
 	binary.LittleEndian.PutUint64(dst[len(ukey):], (seq<<8)|uint64(kt))
 	return internalKey(dst)
 }

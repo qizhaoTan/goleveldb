@@ -31,7 +31,7 @@ import (
 // DB is a LevelDB database.
 type DB struct {
 	// Need 64-bit alignment.
-	seq uint64
+	seq uint64 // 其作用看 makeInternalKey
 
 	// Stats. Need 64-bit alignment.
 	cWriteDelay            int64 // The cumulative duration of write delays
@@ -931,6 +931,7 @@ func (db *DB) GetSnapshot() (*Snapshot, error) {
 // GetProperty returns value of the given property name.
 //
 // Property names:
+//
 //	leveldb.num-files-at-level{n}
 //		Returns the number of files at level 'n'.
 //	leveldb.stats
