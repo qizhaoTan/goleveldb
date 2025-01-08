@@ -330,12 +330,19 @@ func (db *DB) putRec(kt keyType, key, value []byte, wo *opt.WriteOptions) error 
 
 	// Acquire write lock.
 	if merge {
+		// 使用chan获取锁的优势是可以在获取锁的同时，请求写合并writeMerge
+		// db.writeMergeC 是一个阻塞的chan
+		// 第一个协程执行写操作时 通过db.writeLockC获取锁
+		// 其他协程无法通过db.writeLockC获取锁，但是在等待锁的同时可以往db.writeMergeC写writeMerge请求
+		// 持有写锁协程在写入的时会去读取一下db.writeMergeC里面的写请求合并一起写入
 		select {
 		case db.writeMergeC <- writeMerge{sync: sync, keyType: kt, key: key, value: value}:
 			if <-db.writeMergedC {
 				// Write is merged.
 				return <-db.writeAckC
 			}
+
+			// 当持有写锁协程从db.writeMergedC中读取writeMerge后，发现超过本次写入限制，<-db.writeMergedC返回false的同时把持有的写锁转移
 			// Write is not merged, the write lock is handed to us. Continue.
 		case db.writeLockC <- struct{}{}:
 			// Write lock acquired.

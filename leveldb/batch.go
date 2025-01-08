@@ -60,7 +60,7 @@ func (index batchIndex) v(data []byte) []byte {
 
 // Batch is a write batch.
 type Batch struct {
-	data  []byte
+	data  []byte // 所有key value存储在这里
 	index []batchIndex
 
 	// internalLen is sums of key/value pair length plus 8-bytes internal key.
@@ -73,6 +73,7 @@ type Batch struct {
 	growLimit int
 }
 
+// 判断是否要扩容
 func (b *Batch) grow(n int) {
 	o := len(b.data)
 	if cap(b.data)-o < n {
