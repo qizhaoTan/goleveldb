@@ -60,8 +60,8 @@ func (index batchIndex) v(data []byte) []byte {
 
 // Batch is a write batch.
 type Batch struct {
-	data  []byte // 所有key value存储在这里
-	index []batchIndex
+	data  []byte       // 所有key value存储在这里 [kt keyLen key valueLen value|kt keyLen key valueLen value|kt keyLen key valueLen value|...]
+	index []batchIndex // 记录如何读取data的数据
 
 	// internalLen is sums of key/value pair length plus 8-bytes internal key.
 	internalLen int
@@ -102,7 +102,7 @@ func (b *Batch) appendRec(kt keyType, key, value []byte) {
 	data := b.data[:o+n]
 	data[o] = byte(kt)
 	o++
-	o += binary.PutUvarint(data[o:], uint64(len(key)))
+	o += binary.PutUvarint(data[o:], uint64(len(key))) // FIXME 为何还需要带上长度，因为index.keyLen里面就保存了长度
 	index.keyPos = o
 	index.keyLen = len(key)
 	o += copy(data[o:], key)
